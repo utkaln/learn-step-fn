@@ -1,0 +1,97 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "SimpleStep",
+  "States": {
+    "SimpleStep": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:196215119328:function:starterLambdaSTEP:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "CustomErrorTrigger"
+    },
+    "CustomErrorTrigger": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "arn:aws:lambda:us-east-1:196215119328:function:customErrorSTEP:$LATEST"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "CustomError"
+          ],
+          "Next": "CatchCustomErrorFallback"
+        }
+      ],
+      "End": true
+    },
+    "CatchCustomErrorFallback": {
+      "Type": "Pass",
+      "Result": {
+        "samplekey": "samplevalue",
+        "colors": [
+          "violet",
+          "indigo",
+          "blue",
+          "green",
+          "yellow",
+          "orange",
+          "red"
+        ]
+      },
+      "Next": "SampleMap"
+    },
+    "SampleMap": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "Generate UUID",
+        "States": {
+          "Generate UUID": {
+            "Type": "Pass",
+            "End": true,
+            "Parameters": {
+              "uuid.$": "States.UUID()"
+            },
+            "OutputPath": "$.uuid"
+          }
+        }
+      },
+      "End": true,
+      "ItemsPath": "$.colors"
+    }
+  }
+}
